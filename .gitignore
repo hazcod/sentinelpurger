@@ -5,3 +5,4 @@ dist/
 .semrel
 .generated-go-semantic-release-changelog.md
 .idea/
+.cache/
