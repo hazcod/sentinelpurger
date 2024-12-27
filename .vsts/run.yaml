@@ -32,7 +32,7 @@ stages:
       task: DownloadSecureFile@1
       name: config
       inputs:
-        secureFile: sentinelpurger_config.yml
+        secureFile: sentinelpurger.yml
       displayName: "Download config file"
     -
       script: |
