@@ -5,22 +5,33 @@ trigger:
     include: [main, master]
 
 stages:
+-
+  stage: build
+  displayName: Build
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: ubuntu-latest
+  jobs:
   -
-    stage: build
-    displayName: Build
-    condition: eq(variables['Build.Reason'], 'PullRequest')
-    pool:
-      vmImage: ubuntu-latest
-    jobs:
-      -
-        job: sentinelpurger_build
-        steps:
-          -
-            task: GoTool@0
-            displayName: "Install Go"
-            inputs:
-              version: '1.23.4'
-          -
-            script: |
-              go build -o /dev/null ./cmd/...
-            displayName: 'Build sentinelpurger'
+    job: sentinelpurger_build
+    steps:
+    -
+      task: GoTool@0
+      displayName: "Install Go"
+      inputs:
+        version: '1.23.4'
+    -
+      task: Cache@2
+      inputs:
+        key: 'go | "$(Agent.OS)" | go.sum | go.mod'
+        restoreKeys: |
+          go | "$(Agent.OS)" | go.sum | go.mod
+      displayName: 'Set go mod cache'
+    -
+      script: |
+        go mod download
+      displayName: Download go modules
+    -
+      script: |
+        go build -o /dev/null ./cmd/...
+      displayName: 'Build sentinelpurger'

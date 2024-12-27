@@ -29,6 +29,17 @@ stages:
         version: '1.23.4'
       displayName: "Install Go"
     -
+      task: Cache@2
+      inputs:
+        key: 'go | "$(Agent.OS)" | go.sum | go.mod'
+        restoreKeys: |
+          go | "$(Agent.OS)" | go.sum | go.mod
+      displayName: 'Set go mod cache'
+    -
+      script: |
+        go mod download
+      displayName: Download go modules
+    -
       task: DownloadSecureFile@1
       name: config
       inputs:
