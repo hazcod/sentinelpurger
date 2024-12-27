@@ -42,7 +42,7 @@ func createPurgeRequest(tableName string, treshold time.Time) ([]byte, error) {
 		}{
 			{
 				Column:   "TimeGenerated",
-				Operator: ">",
+				Operator: "<",
 				Value:    treshold.UTC().Format("2006-01-02"),
 			},
 		},
