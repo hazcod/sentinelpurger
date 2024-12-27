@@ -29,7 +29,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 USER 1000
 
 # add our application binary
-COPY miro2sen /miro2sen
+COPY sentinelpurger /sentinelpurger
 
 # entrypoint
-ENTRYPOINT ["/miro2sen"]
+ENTRYPOINT ["/sentinelpurger"]
