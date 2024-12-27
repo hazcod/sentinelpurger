@@ -1,3 +1,5 @@
+version: 2
+
 before:
   hooks:
   - go mod download
@@ -5,9 +7,8 @@ before:
 checksum:
   name_template: 'checksums.txt'
 
-snapshot:
-  name_template: "sentinelpurger{{ .Version }}_{{ .Os }}_{{ .Arch }}"
-  format: zip
+archives:
+- format: zip
 
 changelog:
   sort: asc
