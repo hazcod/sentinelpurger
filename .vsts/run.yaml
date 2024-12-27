@@ -1,0 +1,41 @@
+name: SentinelPurger_$(Build.BuildId)
+
+trigger:
+  branches:
+    include: [main, master]
+
+schedules:
+-
+  cron: '0 * * * *'
+  displayName: 'Hourly run of the SentinelPurger'
+  branches:
+    include: [ main, master ]
+  always: true
+
+stages:
+-
+  stage: run
+  displayName: Purge Sentinel Logs
+  condition: ne(variables['Build.Reason'], 'PullRequest')
+  pool:
+    vmImage: ubuntu-latest
+  jobs:
+  -
+    job: sentinelpurger_run
+    steps:
+    -
+      task: GoTool@0
+      inputs:
+        version: '1.23'
+      displayName: "Install Go"
+    -
+      task: DownloadSecureFile@1
+      name: config
+      inputs:
+        secureFile: sentinelpurger_config.yml
+      displayName: "Download config file"
+    -
+      script: |
+        go run ./cmd/... -config=$(config.secureFilePath)
+      displayName: 'Run sentinelpurger'
+      retryCountOnTaskFailure: 3

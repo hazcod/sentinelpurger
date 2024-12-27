@@ -1,0 +1,26 @@
+name: MiroToSentinel_$(Build.BuildId)
+
+trigger:
+  branches:
+    include: [main, master]
+
+stages:
+  -
+    stage: build
+    displayName: Build
+    condition: eq(variables['Build.Reason'], 'PullRequest')
+    pool:
+      vmImage: ubuntu-latest
+    jobs:
+      -
+        job: mirotosen_build
+        steps:
+          -
+            task: GoTool@0
+            displayName: "Install Go"
+            inputs:
+              version: '1.23'
+          -
+            script: |
+              go build -o /dev/null ./cmd/...
+            displayName: 'Build miro2sen'

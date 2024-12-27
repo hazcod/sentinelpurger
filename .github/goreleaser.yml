@@ -1,0 +1,42 @@
+before:
+  hooks:
+  - go mod download
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "sentinelpurger{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  format: zip
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore'
+
+release:
+  disable: false
+
+dockers:
+  -
+    image_templates:
+    - "ghcr.io/hazcod/sentinelpurger/sentinelpurger:latest"
+    - "ghcr.io/hazcod/sentinelpurger/sentinelpurger:{{ .Tag }}"
+    - "ghcr.io/hazcod/sentinelpurger/sentinelpurger:{{ .Major }}"
+
+sboms:
+  -
+    artifacts: archive
+
+builds:
+  -
+    id: cli
+    dir: ./cmd/
+    env: [CGO_ENABLED=0]
+    ldflags: [-w -s -extldflags "-static"]
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    binary: sentinelpurger
