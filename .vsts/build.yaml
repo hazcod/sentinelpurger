@@ -1,4 +1,4 @@
-name: MiroToSentinel_$(Build.BuildId)
+name: sentinelpurger_$(Build.BuildId)
 
 trigger:
   branches:
@@ -13,14 +13,14 @@ stages:
       vmImage: ubuntu-latest
     jobs:
       -
-        job: mirotosen_build
+        job: sentinelpurger_build
         steps:
           -
             task: GoTool@0
             displayName: "Install Go"
             inputs:
-              version: '1.23'
+              version: '1.23.4'
           -
             script: |
               go build -o /dev/null ./cmd/...
-            displayName: 'Build miro2sen'
+            displayName: 'Build sentinelpurger'
