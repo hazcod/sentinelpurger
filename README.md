@@ -40,3 +40,14 @@ Or binary:
 ```shell
 % make build
 ```
+
+## Setup
+
+1. Create an App Registration and secret key.
+2. Go to your Analytics Workspace > IAM > App Roles and assign the `Data Purger` role to the app registration you created.
+3. If you have a Log Search alert rule for operational issue alerting, modify is so that sucessful purging is ignored:
+```azure
+_LogOperation
+| where Level == "Warning"
+| where Detail !contains "Purge operation started" and Detail !contains "Purge opertion completed"
+```
