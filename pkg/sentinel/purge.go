@@ -50,6 +50,10 @@ func createPurgeRequest(tableName string, treshold time.Time) ([]byte, error) {
 	return json.Marshal(request)
 }
 
+type purgeResponse struct {
+	ID string `json:"operationId"`
+}
+
 func (s *Sentinel) PurgeLogs(l *logrus.Entry, subscriptionID, resourceGroup, workspaceName string, tableName string, treshold time.Time) error {
 	logger := l.WithField("module", "purger")
 
@@ -85,15 +89,25 @@ func (s *Sentinel) PurgeLogs(l *logrus.Entry, subscriptionID, resourceGroup, wor
 	}
 	defer resp.Body.Close()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("could not read response body: %w", err)
+	}
+
 	if resp.StatusCode != http.StatusAccepted {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			logger.WithError(err).Error("could not read response body")
-		}
 		return fmt.Errorf("failed to purge data (status=%d): %s", resp.StatusCode, string(body))
 	}
 
+	var purgeResponse purgeResponse
+	if err := json.Unmarshal(body, &purgeResponse); err != nil {
+		return fmt.Errorf("could not parse purge response: %w", err)
+	}
+
 	logger.Info("requested to purge logs")
+
+	if err := s.getPurgeStatus(l, subscriptionID, resourceGroup, workspaceName, purgeResponse.ID); err != nil {
+		return fmt.Errorf("could not get purge status: %w", err)
+	}
 
 	return nil
 }
