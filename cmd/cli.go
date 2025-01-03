@@ -69,5 +69,5 @@ func main() {
 		}
 	}
 
-	logger.Info("finished ingesting")
+	logger.Info("finished")
 }

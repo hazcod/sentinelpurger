@@ -6,7 +6,12 @@ import (
 	"github.com/sirupsen/logrus"
 	"io"
 	"net/http"
+	"strings"
 	"time"
+)
+
+const (
+	purgeStatusPending = "pending"
 )
 
 type purgeStatusResponse struct {
@@ -59,6 +64,10 @@ func (s *Sentinel) getPurgeStatus(l *logrus.Entry, subscriptionID, resourceGroup
 	var statusResp purgeStatusResponse
 	if err := json.Unmarshal(body, &statusResp); err != nil {
 		return fmt.Errorf("could not parse purge status response: %w", err)
+	}
+
+	if !strings.EqualFold(statusResp.Status, purgeStatusPending) {
+		return fmt.Errorf("invalid purge job status: %s", statusResp.Status)
 	}
 
 	logger.WithField("status", statusResp.Status).Info("purge job registered")

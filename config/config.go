@@ -10,8 +10,7 @@ import (
 )
 
 const (
-	defaultLogLevel = "DEBUG"
-	defaultLookback = 24
+	defaultLogLevel = "INFO"
 )
 
 type Config struct {
