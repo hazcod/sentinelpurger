@@ -104,9 +104,17 @@ func (s *Sentinel) PurgeLogs(l *logrus.Entry, subscriptionID, resourceGroup, wor
 	}
 
 	logger.Info("requested to purge logs")
+	s.logger.Errorf("%s: %s -> %+v", tableName, purgeResponse.ID, string(purgePayload))
 
-	if err := s.getPurgeStatus(l, subscriptionID, resourceGroup, workspaceName, purgeResponse.ID); err != nil {
+	purgeStatus, err := s.GetPurgeStatus(l, subscriptionID, resourceGroup, workspaceName, purgeResponse.ID)
+	if err != nil {
 		return fmt.Errorf("could not get purge status: %w", err)
+	}
+
+	logger.WithField("id", purgeResponse.ID).WithField("status", purgeStatus).Info("purge job registered")
+
+	if purgeStatus != PurgeStatusPending {
+		return fmt.Errorf("unknown purge job status: %s", purgeStatus)
 	}
 
 	return nil
