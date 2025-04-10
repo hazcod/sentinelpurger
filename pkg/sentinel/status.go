@@ -11,28 +11,31 @@ import (
 )
 
 const (
-	PurgeStatusPending = "pending"
+	purgeStatusUpdating = "updating"
 )
 
 type purgeStatusResponse struct {
-	Status string `json:"status"`
+	ID         string    `json:"id"`
+	Name       string    `json:"name"`
+	Status     string    `json:"status"`
+	StartTime  time.Time `json:"startTime"`
+	EndTime    time.Time `json:"endTime"`
+	Properties struct {
+		RecordCount int    `json:"RecordCount"`
+		Status      string `json:"Status"`
+	} `json:"properties"`
 }
 
-func (s *Sentinel) GetPurgeStatus(l *logrus.Entry, subscriptionID, resourceGroup, workspaceName string, purgeID string) (string, error) {
-	logger := l.WithField("module", "purge_status").WithField("id", purgeID)
+func (s *Sentinel) GetPurgeStatus(l *logrus.Entry, operationURL string) (string, error) {
+	logger := l.WithField("module", "purge_status")
 
-	if purgeID == "" {
-		return "", fmt.Errorf("empty purge ID")
+	if operationURL == "" {
+		return "", fmt.Errorf("empty operation URL")
 	}
 
 	logger.Info("checking log purge status")
 
-	purgeURL := fmt.Sprintf(
-		"https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.OperationalInsights/workspaces/%s/operations/%s?api-version=2023-09-01",
-		subscriptionID, resourceGroup, workspaceName, purgeID,
-	)
-
-	req, err := http.NewRequest(http.MethodGet, purgeURL, nil)
+	req, err := http.NewRequest(http.MethodGet, operationURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("could not create http request: %w", err)
 	}
@@ -68,6 +71,10 @@ func (s *Sentinel) GetPurgeStatus(l *logrus.Entry, subscriptionID, resourceGroup
 
 	if statusResp.Status == "" {
 		return "", fmt.Errorf("empty purge status response")
+	}
+
+	if l.Logger.IsLevelEnabled(logrus.DebugLevel) {
+		l.Debugf("purge status response: %+v", statusResp)
 	}
 
 	return strings.ToLower(statusResp.Status), nil

@@ -24,7 +24,6 @@ func getToken(creds *azidentity.ClientSecretCredential) (string, error) {
 }
 
 type purgeRequest struct {
-	Table   string `json:"table"`
 	Filters []struct {
 		Column   string `json:"column"`
 		Operator string `json:"operator"`
@@ -32,9 +31,8 @@ type purgeRequest struct {
 	} `json:"filters"`
 }
 
-func createPurgeRequest(tableName string, treshold time.Time) ([]byte, error) {
+func createPurgeRequest(treshold time.Time) ([]byte, error) {
 	request := purgeRequest{
-		Table: tableName,
 		Filters: []struct {
 			Column   string `json:"column"`
 			Operator string `json:"operator"`
@@ -50,21 +48,17 @@ func createPurgeRequest(tableName string, treshold time.Time) ([]byte, error) {
 	return json.Marshal(request)
 }
 
-type purgeResponse struct {
-	ID string `json:"operationId"`
-}
-
 func (s *Sentinel) PurgeLogs(l *logrus.Entry, subscriptionID, resourceGroup, workspaceName string, tableName string, treshold time.Time) error {
 	logger := l.WithField("module", "purger")
 
 	logger.Info("purging logs")
 
 	purgeURL := fmt.Sprintf(
-		"https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.OperationalInsights/workspaces/%s/purge?api-version=2023-09-01",
-		subscriptionID, resourceGroup, workspaceName,
+		"https://management.azure.com/subscriptions/%s/resourceGroups/%s/providers/Microsoft.OperationalInsights/workspaces/%s/tables/%s/deleteData?api-version=2023-09-01",
+		subscriptionID, resourceGroup, workspaceName, tableName,
 	)
 
-	purgePayload, err := createPurgeRequest(tableName, treshold)
+	purgePayload, err := createPurgeRequest(treshold)
 	if err != nil {
 		return fmt.Errorf("could not create purge request: %w", err)
 	}
@@ -95,25 +89,26 @@ func (s *Sentinel) PurgeLogs(l *logrus.Entry, subscriptionID, resourceGroup, wor
 	}
 
 	if resp.StatusCode != http.StatusAccepted {
+		if l.Logger.IsLevelEnabled(logrus.DebugLevel) {
+			b, _ := io.ReadAll(resp.Body)
+			l.Logger.Debugf("purge response: %s", string(b))
+		}
 		return fmt.Errorf("failed to purge data (status=%d): %s", resp.StatusCode, string(body))
 	}
 
-	var purgeResponse purgeResponse
-	if err := json.Unmarshal(body, &purgeResponse); err != nil {
-		return fmt.Errorf("could not parse purge response: %w", err)
+	asyncOperationURL := resp.Header.Get("Azure-Asyncoperation")
+	if asyncOperationURL == "" {
+		return fmt.Errorf("could not parse purge response: missing 'Azure-Asyncoperation' URL header")
 	}
 
-	logger.Info("requested to purge logs")
-	s.logger.Errorf("%s: %s -> %+v", tableName, purgeResponse.ID, string(purgePayload))
-
-	purgeStatus, err := s.GetPurgeStatus(l, subscriptionID, resourceGroup, workspaceName, purgeResponse.ID)
+	purgeStatus, err := s.GetPurgeStatus(l, asyncOperationURL)
 	if err != nil {
 		return fmt.Errorf("could not get purge status: %w", err)
 	}
 
-	logger.WithField("id", purgeResponse.ID).WithField("status", purgeStatus).Info("purge job registered")
+	logger.WithField("status", purgeStatus).Info("purge job registered")
 
-	if purgeStatus != PurgeStatusPending {
+	if purgeStatus != purgeStatusUpdating {
 		return fmt.Errorf("unknown purge job status: %s", purgeStatus)
 	}
 
